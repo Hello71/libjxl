@@ -88,7 +88,7 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/highway/CMakeLists.txt" AND
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/highway/LICENSE"
                  ${PROJECT_BINARY_DIR}/LICENSE.highway COPYONLY)
 else()
-  pkg_check_modules(HWY libhwy)
+  pkg_check_modules(HWY IMPORTED_TARGET libhwy)
   if (NOT HWY_FOUND)
     message(FATAL_ERROR
         "Highway library (hwy) not found. Install libhwy-dev or download it "
@@ -96,17 +96,7 @@ else()
         "Highway is required to build JPEG XL. You can run "
         "${PROJECT_SOURCE_DIR}/deps.sh to download this dependency.")
   endif()
-  add_library(hwy INTERFACE IMPORTED GLOBAL)
-  if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
-    set_property(TARGET hwy PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${HWY_INCLUDE_DIR})
-    target_link_libraries(hwy INTERFACE ${HWY_LDFLAGS})
-    set_property(TARGET hwy PROPERTY INTERFACE_COMPILE_OPTIONS ${HWY_CFLAGS_OTHER})
-  else()
-    target_include_directories(hwy INTERFACE ${HWY_INCLUDE_DIRS})
-    target_link_libraries(hwy INTERFACE ${HWY_LINK_LIBRARIES})
-    target_link_options(hwy INTERFACE ${HWY_LDFLAGS_OTHER})
-    target_compile_options(hwy INTERFACE ${HWY_CFLAGS_OTHER})
-  endif()
+  add_library(hwy ALIAS PkgConfig::HWY)
   if(JPEGXL_DEP_LICENSE_DIR)
     configure_file("${JPEGXL_DEP_LICENSE_DIR}/libhwy-dev/copyright"
                    ${PROJECT_BINARY_DIR}/LICENSE.highway COPYONLY)
@@ -129,34 +119,13 @@ if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/brotli/c/include/brotli/decode.h" OR
   foreach(brlib IN ITEMS brotlienc brotlidec brotlicommon)
     # Use uppercase like "BROTLIENC" for the cmake variables
     string(TOUPPER "${brlib}" BRPREFIX)
-    pkg_check_modules(${BRPREFIX} lib${brlib})
+    pkg_check_modules(${BRPREFIX} IMPORTED_TARGET lib${brlib})
     if (${BRPREFIX}_FOUND)
-      if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
-        add_library(${brlib} INTERFACE IMPORTED GLOBAL)
-        set_property(TARGET ${brlib} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${${BRPREFIX}_INCLUDE_DIR})
-        target_link_libraries(${brlib} INTERFACE ${${BRPREFIX}_LDFLAGS})
-        set_property(TARGET ${brlib} PROPERTY INTERFACE_COMPILE_OPTIONS ${${BRPREFIX}_CFLAGS_OTHER})
-
-        add_library(${brlib}-static INTERFACE IMPORTED GLOBAL)
-        set_property(TARGET ${brlib}-static PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${${BRPREFIX}_INCLUDE_DIR})
-        target_link_libraries(${brlib}-static INTERFACE ${${BRPREFIX}_LDFLAGS})
-        set_property(TARGET ${brlib}-static PROPERTY INTERFACE_COMPILE_OPTIONS ${${BRPREFIX}_CFLAGS_OTHER})
-      else()
-        add_library(${brlib} INTERFACE IMPORTED GLOBAL)
-        target_include_directories(${brlib}
-            INTERFACE ${${BRPREFIX}_INCLUDE_DIRS})
-        target_link_libraries(${brlib}
-            INTERFACE ${${BRPREFIX}_LINK_LIBRARIES})
-        target_link_options(${brlib}
-            INTERFACE ${${BRPREFIX}_LDFLAGS_OTHER})
-        target_compile_options(${brlib}
-            INTERFACE ${${BRPREFIX}_CFLAGS_OTHER})
-
-        # TODO(deymo): Remove the -static library versions, this target is
-        # currently needed by brunsli.cmake. When importing it this way, the
-        # brotli*-static target is just an alias.
-        add_library(${brlib}-static ALIAS ${brlib})
-      endif()
+      add_library(${brlib} ALIAS PkgConfig::${BRPREFIX})
+      # TODO(deymo): Remove the -static library versions, this target is
+      # currently needed by brunsli.cmake. When importing it this way, the
+      # brotli*-static target is just an alias.
+      add_library(${brlib}-static ALIAS PkgConfig::${BRPREFIX})
     endif()
     unset(BRPREFIX)
   endforeach()
